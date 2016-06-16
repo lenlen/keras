@@ -1,5 +1,6 @@
 from keras.models import model_from_json
 from keras.optimizers import SGD
+from extra_layers import *
 
 from scipy import misc
 import numpy as np
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     # Load the converted model
     print "Loading model."
     # Load model structure
-    model = model_from_json(open('models/Keras_model_structure.json').read())
+    model = model_from_json(open('models/Keras_model_structure.json').read(), {'LRN2D': LRN2D})
     # Load model weights
     model.load_weights('models/Keras_model_weights.h5') 
 
