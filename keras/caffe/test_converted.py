@@ -44,16 +44,19 @@ if __name__ == "__main__":
     sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
     loss = dict()
     
-    #TODO get out layer name from model
-    for out in ["loss1/loss", "loss2/loss", "loss3/loss3"]:
-        loss[out] = 'categorical_crossentropy'
-        last_out = out
+    out_node = []
+    for i in model.layers:
+      if len(i.outbound_nodes) == 0:
+        out_node.append(i)
+    for out in out_node:
+        loss[out.name] = 'categorical_crossentropy'
+        last_out = out.name
+        
     model.compile(optimizer=sgd, loss=loss)
     
     # Predict image output
     print "Applying prediction."
     in_data = dict()
-    #TODO get in layer name from model
     for input in ['data']:
         in_data[input] = im
     out = model.predict(in_data)
@@ -64,8 +67,5 @@ if __name__ == "__main__":
         for line in list_:
             classes.append(line.rstrip('\n'))
        
-    #TODO change prints
-    print classes[np.argmax(out[0])]
-    print classes[np.argmax(out[1])]
-    print classes[np.argmax(out[2])]
+    print classes[np.argmax(out[len(model.outputs)-1])]
 

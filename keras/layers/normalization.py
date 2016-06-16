@@ -2,6 +2,7 @@ from ..engine import Layer, InputSpec
 from .. import initializations
 from .. import backend as K
 
+
 class BatchNormalization(Layer):
     '''Normalize the activations of the previous layer at each batch,
     i.e. applies a transformation that maintains the mean activation
