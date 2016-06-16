@@ -83,9 +83,7 @@ def create_model(layers, phase, input_dim, debug=False):
     # obtain the nodes that make up the graph
     # returned in linked list (not matrix) representation (dictionary here)
     network = parse_network(layers, phase)  
-    
-    print("network", network)
-    
+        
     if len(network) == 0:
         raise Exception('failed to construct network from the prototext')
 
@@ -102,56 +100,34 @@ def create_model(layers, phase, input_dim, debug=False):
     #create all net nodes without link
     net_node = [None]*(max(network)+1)
     for layer_nb in network:
-        print("")
-        print("###################")
         layer = layers[layer_nb]
         name = layer.name
         type_of_layer = layer_type(layer)
         
-        print("type_of_layer", type_of_layer)
-        print("layer_nb", layer_nb)
-        print("layer", layer)
-
         #case of inputs
         if layer_nb in inputs:
             if in_deploy_mode:
                 dim = input_dim
             else:
                 dim = get_data_dim(layers[network_input])
-            #name = 'input_' + name
             net_node[layer_nb] = Input(shape=dim, name=name)
         #other  cases
         else:
           
             
-            print("len(inputs_to[layer_nb])", len(inputs_to[layer_nb]))
             input_layers = [None]*(len(inputs_to[layer_nb]))
             for l in range(0, len(inputs_to[layer_nb])):
-                print("l", l)
-                print("inputs_to[layer_nb]", inputs_to[layer_nb])
-                print("inputs_to[layer_nb][l]", inputs_to[layer_nb][l])
                 input_layers[l] = net_node[inputs_to[layer_nb][l]]
             
             #input_layers = net_node[inputs_to[layer_nb]]
-            print("inputs_to[layer_nb]", inputs_to[layer_nb])
-            print("inputs_to[layer_nb]", inputs_to[layer_nb][0])
             input_layer_names = []
             for input_layer in inputs_to[layer_nb]:
-                #if input_layer in inputs and in_deploy_mode:
-                #input_layer_names.append('input_' + layers[input_layer].name)
-                #else:
                 input_layer_names.append(layers[input_layer].name)
                     
 
             if type_of_layer == 'concat':
                 axis = layer.concat_param.axis
-                print("axis", axis)
-                print("input_layers", input_layers)
-                print("input_layers", type(input_layers))
-                print("input_layer_names", input_layer_names)
                 net_node[layer_nb] =  merge(input_layers, mode='concat', concat_axis=1, name=name)
-                #model.add_node(Activation('linear'), name=name, inputs=input_layer_names, concat_axis=axis)
-                #net_node[layer_nb] =  Activation('linear')(input_layers)
                 
             elif type_of_layer == 'convolution':
                 nb_filter = layer.convolution_param.num_output
@@ -184,25 +160,10 @@ def create_model(layers, phase, input_dim, debug=False):
             elif type_of_layer == 'innerproduct':
                 output_dim = layer.inner_product_param.num_output
 
-                #if len(model.nodes[input_layer_name].output_shape[1:]) > 1:
-                #    minput_layers = Flatten()(input_layers)
-                #    input_layer_name = name + '_flatten'
-                
-                print("shape", output_dim)
-                print("input_layers", input_layers)
-                print("input_layers[0]._keras_shape", len(input_layers[0]._keras_shape[1:]))
                 if len(input_layers[0]._keras_shape[1:]) > 1:
                     input_layers = Flatten(name=name + '_flatten')(input_layers)
                     input_layer_name = name + '_flatten'
-                
-                '''if  layer_nb == 57:
-                  print("++++++++", input_layers._keras_shape[1:])
-                  attrs = vars(input_layers)
-                  print ', '.join("%s: %s" % item for item in attrs.items())
-                  return
-                '''
-                #print("input_layers._keras_shape[1:]", input_layers._keras_shape[1:])
-                print("input_layers", input_layers)
+
                 net_node[layer_nb] = Dense(output_dim, name=name)(input_layers)
                    
             
@@ -211,9 +172,7 @@ def create_model(layers, phase, input_dim, debug=False):
                 k = layer.lrn_param.k
                 beta = layer.lrn_param.beta
                 n = layer.lrn_param.local_size
-                #TODO non prende nome
                 net_node[layer_nb] = LRN2D(alpha=alpha, k=k, beta=beta, n=n, name=name)(input_layers)
-                #net_node[layer_nb] = BatchNormalization(name=name)(input_layers)
 
 
             elif type_of_layer == 'pooling':
@@ -239,7 +198,6 @@ def create_model(layers, phase, input_dim, debug=False):
                 #input_layers = np.array(input_layers)
 
                 if pad_h + pad_w > 0:
-                    print("input_layers", input_layers)
                     input_layers = ZeroPadding2D(padding=(pad_h, pad_w), name=name + '_zeropadding')(input_layers)
                     input_layer_name = name + '_zeropadding'
                 if(layer.pooling_param.pool == 0): # MAX pooling
@@ -260,7 +218,6 @@ def create_model(layers, phase, input_dim, debug=False):
                 net_node[layer_nb] = Activation('sigmoid', name=name)(input_layers)
 
             elif type_of_layer == 'softmax' or type_of_layer == 'softmaxwithloss':
-                print("input_layers", input_layers)
                 net_node[layer_nb] = Activation('softmax', name=name)(input_layers)
 
             elif type_of_layer == 'split':
@@ -272,9 +229,6 @@ def create_model(layers, phase, input_dim, debug=False):
             else:
                 raise RuntimeError('layer type', type_of_layer, 'used in this model is not currently supported')
 
-
-    print(inputs)
-    print(network_outputs)
     
     input_l = [None]*(len(inputs))
     output_l = [None]*(len(network_outputs))
@@ -284,179 +238,10 @@ def create_model(layers, phase, input_dim, debug=False):
     for i in range(0, len(network_outputs)):
       output_l[i] = net_node[network_outputs[i]]
     
-    print(input_l)
     model = Model(input=input_l, output=output_l)
-    #print(net_node)
     return model
 
-    '''
-    input_model = []
-    # add input nodes
-    for network_input in inputs:
-        print(network_input)
-        name = layers[network_input].name
-        if in_deploy_mode:
-            dim = input_dim
-        else:
-            dim = get_data_dim(layers[network_input])
-        name = 'input_'+name
-        model.add_input(name=name, input_shape=dim)
-       
-    # parse all the layers and build equivalent keras graph
-    for layer_nb in network:
-        layer = layers[layer_nb]
-        name = layer.name
-        type_of_layer = layer_type(layer)
-
-        if is_data_input(layer):
-            continue
-
-        # DEPLOY MODE: this layer takes in input as per the model. 
-        # No data layer preceding it.
-        # we use the actual name of the layer in 'add_input'
-        # so users can see the first layer as input
-        # Here we prefix the layer name by 'input_'
-        # OR, in case, if this layer takes input from a layer 
-        # that is now pefixed with 'input_', we need to adjust input layer names 
-        if layer_nb in inputs:
-            input_layer_names = [name]
-            name = 'input_' + name
-        else:
-            input_layers = inputs_to[layer_nb]
-            input_layer_names = []
-            for input_layer in input_layers:
-                if input_layer in inputs and in_deploy_mode:
-                    input_layer_names.append('input_' + layers[input_layer].name)
-                else:
-                    input_layer_names.append(layers[input_layer].name)
-
-        # outputs nodes are marked with 'output_' prefix 
-        # from which output is derived later in 'add_output'
-        if layer_nb in network_outputs:
-            name = 'output_' + name
-
-        # since concatenation is explicit,
-        # all other layers can be thought of single input layers
-        # (except loss layers, which is handled before, while creating the DAG)
-        if len(input_layer_names) == 1:
-            input_layer_name = input_layer_names[0]
-
-        if(debug):
-            print(name + ': '+ type_of_layer)
-            try:
-                print("input size: " +str(model.nodes[input_layer_name].output_shape))
-            except:
-                pass
-
-        if type_of_layer == 'concat':
-            # emulation of just concatenation
-            axis = layer.concat_param.axis  # 0 for batch, 1 for stack
-            model.add_node(Activation('linear'), name=name, inputs=input_layer_names, concat_axis=axis)
-
-        elif type_of_layer == 'convolution':
-            nb_filter = layer.convolution_param.num_output
-            nb_col = (layer.convolution_param.kernel_size or [layer.convolution_param.kernel_h])[0]
-            nb_row = (layer.convolution_param.kernel_size or [layer.convolution_param.kernel_w])[0]
-            stride_h = (layer.convolution_param.stride or [layer.convolution_param.stride_h])[0] or 1
-            stride_w = (layer.convolution_param.stride or [layer.convolution_param.stride_w])[0] or 1
-            pad_h = (layer.convolution_param.pad or [layer.convolution_param.pad_h])[0]
-            pad_w = (layer.convolution_param.pad or [layer.convolution_param.pad_w])[0]
-
-            if(debug):
-                print("kernel")
-                print(str(nb_filter)+'x'+str(nb_col)+'x'+str(nb_row))
-                print("stride")
-                print(stride_h)
-                print("pad")
-                print(pad_h)
-
-            if pad_h + pad_w > 0:
-                model.add_node(ZeroPadding2D(padding=(pad_h, pad_w)), name=name + '_zeropadding', input=input_layer_name)
-                input_layer_name = name + '_zeropadding'
-            model.add_node(Convolution2D(nb_filter, nb_row, nb_col, subsample=(stride_h, stride_w)), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'dropout':
-            prob = layer.dropout_param.dropout_ratio
-            model.add_node(Dropout(prob), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'flatten':
-            model.add_node(Flatten(), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'innerproduct':
-            output_dim = layer.inner_product_param.num_output
-            if len(model.nodes[input_layer_name].output_shape[1:]) > 1:
-                model.add_node(Flatten(), name=name + '_flatten', input=input_layer_name)
-                input_layer_name = name + '_flatten'
-            
-            model.add_node(Dense(output_dim), name=name, input=input_layer_name)
-           
-        elif type_of_layer == 'lrn':
-            alpha = layer.lrn_param.alpha
-            k = layer.lrn_param.k
-            beta = layer.lrn_param.beta
-            n = layer.lrn_param.local_size
-
-            model.add_node(LRN2D(alpha=alpha, k=k, beta=beta, n=n), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'pooling':
-            kernel_h = layer.pooling_param.kernel_size or layer.pooling_param.kernel_h
-            kernel_w = layer.pooling_param.kernel_size or layer.pooling_param.kernel_w
-
-            # caffe defaults to 1, hence both of the params can be zero. 'or 1'
-            stride_h = layer.pooling_param.stride or layer.pooling_param.stride_h or 1
-            stride_w = layer.pooling_param.stride or layer.pooling_param.stride_w or 1
-
-            pad_h = layer.pooling_param.pad or layer.pooling_param.pad_h
-            pad_w = layer.pooling_param.pad or layer.pooling_param.pad_w
-
-            if(debug):
-                print("kernel")
-                print(str(kernel_h)+'x'+str(kernel_w))
-                print("stride")
-                print(stride_h)
-                print("pad")
-                print(pad_h)
-
-            if pad_h + pad_w > 0:
-                model.add_node(ZeroPadding2D(padding=(pad_h, pad_w)), name=name + '_zeropadding', input=input_layer_name)
-                input_layer_name = name + '_zeropadding'
-            if(layer.pooling_param.pool == 0): # MAX pooling
-                model.add_node(MaxPooling2D(pool_size=(kernel_h, kernel_w), strides=(stride_h, stride_w)), name=name, input=input_layer_name)
-                if(debug):
-                    print("MAX pooling")
-            elif(layer.pooling_param.pool == 1): # AVE pooling
-                model.add_node(AveragePooling2D(pool_size=(kernel_h, kernel_w), strides=(stride_h, stride_w)), name=name, input=input_layer_name)
-                if(debug):
-                    print("AVE pooling")
-            else: # STOCHASTIC?
-                raise NotImplementedError("Only MAX and AVE pooling are implemented in keras!")
-
-        elif type_of_layer == 'relu':
-            model.add_node(Activation('relu'), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'sigmoid':
-            model.add_node(Activation('sigmoid'), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'softmax' or type_of_layer == 'softmaxwithloss':
-            model.add_node(Activation('softmax'), name=name, input=input_layer_name)
-
-        elif type_of_layer == 'split':
-            model.add_node(Activation('linear'), name=name, inputs=input_layer_name)
-
-        elif type_of_layer == 'tanh':
-            model.add_node(Activation('tanh'), name=name, input=input_layer_name)
-
-        else:
-            raise RuntimeError('layer type', type_of_layer, 'used in this model is not currently supported')
-
-    # add the output nodes. The actual nodes are in interior with prefix 'output_'
-    for network_output in network_outputs:
-        input_layer_name = 'output_' + layers[network_output].name
-        model.add_output(name=layers[network_output].name, input=input_layer_name)
-    
-    return model
-    '''
-
+   
 def rot90(W):
     for i in range(W.shape[0]):
         for j in range(W.shape[1]):
@@ -555,26 +340,9 @@ def convert_weights(param_layers, v='V1', debug=False):
 
     return weights
 
-import pickle
 def load_weights(model, weights):
-    model.summary()
     for layer in model.layers:
-        #attrs = vars(layer)
-        #print ', '.join("%s: %s" % item for item in attrs.items())
         if weights.has_key(layer.name):
-            #print("weight prima", model.get_layer(layer.name).get_weights())
             model.get_layer(layer.name).set_weights(weights[layer.name])
-            #model.nodes[layer].set_weights(weights[layer])
-            #print("weight dopo", model.get_layer(layer.name).get_weights())
-            #print("Layer trovato")
-            print("layer", layer.name)
-            if layer.name == "inception_3a/1x1":
-                output = open('inception_3a_1x1_weights.pkl', 'wb')
-                pickle.dump( model.get_layer(layer.name).get_weights(), output)
-                output.close()
-              
-        #else:
-        #    print("Layer non trovato")
-            
 
 

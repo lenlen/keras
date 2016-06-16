@@ -20,7 +20,7 @@ class LRN2D(Layer):
             raise NotImplementedError("Only works with odd n")
 
     def build(self, input_shape):
-        print("---------------------------------------build-------------------------------------")
+        None
       
     def call(self, x, mask=None):
         X = x
@@ -35,7 +35,6 @@ class LRN2D(Layer):
         for i in range(self.n):
             scale += norm_alpha * input_sqr[:, i:i+ch, :, :]
         scale = scale ** self.beta
-        print("---------------------------------------"+str(X / scale)+"-------------------------------------")
         return X / scale
         
     def get_output(self, train):
@@ -51,7 +50,6 @@ class LRN2D(Layer):
         for i in range(self.n):
             scale += norm_alpha * input_sqr[:, i:i+ch, :, :]
         scale = scale ** self.beta
-        print("---------------------------------------"+str(X / scale)+"-------------------------------------")
         return X / scale
 
     def get_config(self):

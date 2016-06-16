@@ -37,37 +37,24 @@ if __name__ == "__main__":
     model = model_from_json(open('models/Keras_model_structure.json').read())
     # Load model weights
     model.load_weights('models/Keras_model_weights.h5') 
-    
-    import pickle
-    output = open('loss3_classifier.pkl', 'wb')
-    pickle.dump( model.get_layer("loss3/classifier").get_weights(), output)
-    output.close()
-                
+
     # Compile converted model
     print "Compiling model."
     sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
     loss = dict()
     
-    print(model.outputs[0])
-    print(type(model.outputs[0]))
-    
-    attrs = vars(model.outputs[0])
-    print ', '.join("%s: %s" % item for item in attrs.items())
-    
-    # {u'': 'categorical_crossentropy', u'loss3/loss3': 'categorical_crossentropy', u'loss2/loss': 'categorical_crossentropy'}
+    #TODO get out layer name from model
     for out in ["loss1/loss", "loss2/loss", "loss3/loss3"]:
         loss[out] = 'categorical_crossentropy'
         last_out = out
-    print("loss", loss)
     model.compile(optimizer=sgd, loss=loss)
-    #model.compile(optimizer=sgd, loss='categorical_crossentropy')
     
     # Predict image output
     print "Applying prediction."
     in_data = dict()
+    #TODO get in layer name from model
     for input in ['data']:
         in_data[input] = im
-    print("im.shape", im.shape)
     out = model.predict(in_data)
 
     # Load ImageNet classes file
@@ -75,13 +62,8 @@ if __name__ == "__main__":
     with open('models/classes.txt', 'r') as list_:
         for line in list_:
             classes.append(line.rstrip('\n'))
-
-    #print(out)
-    print("len(out)", len(out))
-    
-    np.savetxt("out.txt", out[0])
-    
-                
+       
+    #TODO change prints
     print classes[np.argmax(out[0])]
     print classes[np.argmax(out[1])]
     print classes[np.argmax(out[2])]
